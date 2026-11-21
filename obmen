@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кольцо Обмена — бартер навыками</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#273449;
+    --accent:#38bdf8; --accent2:#a78bfa; --good:#34d399;
+    --text:#e2e8f0; --muted:#94a3b8; --border:#334155;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    font-family:'Segoe UI', system-ui, sans-serif;
+    background:linear-gradient(160deg,#0f172a,#1e1b4b 60%,#0f172a);
+    color:var(--text); min-height:100vh; padding:20px;
+    line-height:1.5;
+  }
+  .wrap{max-width:1100px; margin:0 auto}
+  header{text-align:center; margin-bottom:28px}
+  h1{font-size:2rem; background:linear-gradient(90deg,var(--accent),var(--accent2));
+     -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .sub{color:var(--muted); font-size:.95rem; margin-top:6px}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:20px;
+  }
+  .card h2{font-size:1.1rem; margin-bottom:14px; color:var(--accent)}
+  label{display:block; font-size:.85rem; color:var(--muted); margin:10px 0 4px}
+  input,select,textarea{
+    width:100%; padding:10px 12px; border-radius:10px;
+    border:1px solid var(--border); background:var(--card2);
+    color:var(--text); font-size:.95rem; outline:none;
+  }
+  input:focus,select:focus{border-color:var(--accent)}
+  button{
+    cursor:pointer; border:none; border-radius:10px;
+    padding:11px 18px; font-size:.95rem; font-weight:600;
+    transition:.15s; font-family:inherit;
+  }
+  .btn-main{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    color:#0f172a; width:100%; margin-top:14px;
+  }
+  .btn-main:hover{filter:brightness(1.15)}
+  .btn-sm{background:var(--card2); color:var(--text); border:1px solid var(--border); padding:6px 12px; font-size:.8rem}
+  .btn-sm:hover{border-color:var(--accent)}
+  .tag{
+    display:inline-block; background:var(--card2); border:1px solid var(--border);
+    border-radius:999px; padding:4px 12px; font-size:.8rem; margin:3px 4px 3px 0;
+  }
+  .tag.can{border-color:var(--good); color:var(--good)}
+  .tag.want{border-color:var(--accent2); color:var(--accent2)}
+  .tag .x{cursor:pointer; margin-left:6px; opacity:.6}
+  .tag .x:hover{opacity:1; color:#f87171}
+  .people{display:grid; gap:12px}
+  .person{
+    background:var(--card2); border:1px solid var(--border);
+    border-radius:12px; padding:14px;
+  }
+  .person .name{font-weight:700; margin-bottom:4px}
+  .person .dist{font-size:.8rem; color:var(--muted); margin-bottom:8px}
+  .rings{margin-top:10px}
+  .ring{
+    background:linear-gradient(135deg,#1e293b,#312e81);
+    border:1px solid var(--accent); border-radius:14px;
+    padding:16px; margin-bottom:14px;
+  }
+  .ring h3{font-size:.95rem; color:var(--accent); margin-bottom:10px}
+  .step{
+    display:flex; align-items:center; gap:10px;
+    padding:8px 0; border-bottom:1px dashed var(--border); font-size:.9rem;
+  }
+  .step:last-child{border:none}
+  .step .arrow{color:var(--accent2); font-weight:700}
+  .hint{font-size:.8rem; color:var(--muted); margin-top:8px}
+  .empty{color:var(--muted); font-size:.9rem; text-align:center; padding:18px}
+  .row{display:flex; gap:8px}
+  .row > *{flex:1}
+  #toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(120%);
+    background:var(--good); color:#0f172a; padding:12px 24px; border-radius:12px;
+    font-weight:600; transition:.35s; z-index:99;
+  }
+  #toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔄 Кольцо Обмена</h1>
+    <p class="sub">Меняй навыки без денег. 1 час = 1 час. Найди цепочку A→B→C→A</p>
+  </header>
+
+  <div class="grid">
+    <!-- Левая колонка: профиль -->
+    <div class="card">
+      <h2>👤 Твой профиль</h2>
+      <label>Имя</label>
+      <input id="myName" placeholder="Например, Алиса">
+      <label>Район (без точного адреса)</label>
+      <input id="myDistrict" placeholder="Например, Центральный">
+
+      <label>Что я умею (навык + Enter или «Добавить»)</label>
+      <div class="row">
+        <input id="canInput" placeholder="чинить велосипед">
+        <button class="btn-sm" style="flex:0 0 auto" onclick="addSkill('can')">Добавить</button>
+      </div>
+      <div id="canList" style="margin-top:8px"></div>
+
+      <label>Что мне нужно</label>
+      <div class="row">
+        <input id="wantInput" placeholder="уроки выпечки">
+        <button class="btn-sm" style="flex:0 0 auto" onclick="addSkill('want')">Добавить</button>
+      </div>
+      <div id="wantList" style="margin-top:8px"></div>
+
+      <button class="btn-main" onclick="saveMe()">💾 Сохранить профиль</button>
+    </div>
+
+    <!-- Правая колонка: люди -->
+    <div class="card">
+      <h2>👥 Люди рядом (демо-база)</h2>
+      <div class="people" id="peopleList"></div>
+      <p class="hint">Это демо-пользователи. В реальном сайте здесь были бы живые люди из твоего района.</p>
+    </div>
+  </div>
+
+  <!-- Результат: кольца -->
+  <div class="card">
+    <h2>🔗 Найденные кольца обмена</h2>
+    <div class="rings" id="ringsList"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============ ДЕМО-БАЗА ============ */
+const DEMO_PEOPLE = [
+  { id:1, name:"Аня",   district:"Центральный",   can:["печь хлеб","торты"],        want:["гитара","фотография"] },
+  { id:2, name:"Марк",  district:"Центральный",   can:["фотография","монтаж видео"], want:["печь хлеб","английский"] },
+  { id:3, name:"Олег",  district:"Северный",      can:["чинить велосипед","сантехника"], want:["фотография","гитара"] },
+  { id:4, name:"Ира",   district:"Центральный",   can:["гитара","английский"],      want:["торты","сантехника"] },
+  { id:5, name:"Данил", district:"Южный",         can:["настраивать Wi-Fi","Python"], want:["монтаж видео","английский"] },
+];
+
+/* ============ СОСТОЯНИЕ ============ */
+let me = { name:"", district:"", can:[], want:[] };
+
+/* ============ УТИЛИТЫ ============ */
+function norm(s){ return s.trim().toLowerCase(); }
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ============ ДОБАВЛЕНИЕ НАВЫКОВ ============ */
+function addSkill(type){
+  const input = document.getElementById(type === 'can' ? 'canInput' : 'wantInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(me[type].map(norm).includes(norm(val))){ toast("Уже есть"); return; }
+  me[type].push(val);
+  input.value = "";
+  renderMySkills();
+}
+
+function removeSkill(type, idx){
+  me[type].splice(idx,1);
+  renderMySkills();
+}
+
+function renderMySkills(){
+  const canBox = document.getElementById('canList');
+  const wantBox = document.getElementById('wantList');
+  canBox.innerHTML = me.can.map((s,i)=>
+    `<span class="tag can">${s}<span class="x" onclick="removeSkill('can',${i})">✕</span></span>`).join('');
+  wantBox.innerHTML = me.want.map((s,i)=>
+    `<span class="tag want">${s}<span class="x" onclick="removeSkill('want',${i})">✕</span></span>`).join('');
+}
+
+/* ============ СОХРАНЕНИЕ ПРОФИЛЯ ============ */
+function saveMe(){
+  me.name = document.getElementById('myName').value.trim() || "Ты";
+  me.district = document.getElementById('myDistrict').value.trim() || "—";
+  if(!me.can.length && !me.want.length){ toast("Добавь хотя бы один навык"); return; }
+  toast("Профиль сохранён ✅");
+  findRings();
+}
+
+/* ============ АЛГОРИТМ КОЛЕЦ ОБМЕНА ============ */
+/* Модель: граф, где ребро A→B значит "A умеет то, что нужно B".
+   Ищем циклы длины 3: A→B→C→A (ты включён как узел "me"). */
+
+function buildNodes(){
+  // me + демо-люди
+  const nodes = [
+    { id:"me", name: me.name || "Ты", can: me.can, want: me.want },
+    ...DEMO_PEOPLE.map(p=>({ id:"p"+p.id, name:p.name, can:p.can, want:p.want }))
+  ];
+  return nodes;
+}
+
+// A может дать B, если у A есть навык, который B хочет
+function canGive(a, b){
+  return a.can.some(skill => b.want.map(norm).includes(norm(skill)));
+}
+
+// Оценка "совпадения" — сколько общих навыков
+function matchScore(a, b){
+  return a.can.filter(skill => b.want.map(norm).includes(norm(skill))).length;
+}
+
+function findRings(){
+  const nodes = buildNodes();
+  const meNode = nodes.find(n=>n.id==="me");
+  if(!meNode.can.length || !meNode.want.length){
+    document.getElementById('ringsList').innerHTML =
+      `<div class="empty">Добавь хотя бы один навык «умею» и один «нужно», чтобы искать кольца.</div>`;
+    return;
+  }
+
+  const rings = [];
+
+  // Прямой обмен: me ↔ B
+  nodes.filter(n=>n.id!=="me").forEach(b=>{
+    if(canGive(meNode,b) && canGive(b,meNode)){
+      rings.push({
+        type:"Прямой обмен (2 человека)",
+        steps:[
+          {from:meNode.name, to:b.name, what: giveWhat(meNode,b)},
+          {from:b.name, to:meNode.name, what: giveWhat(b,meNode)}
+        ]
+      });
+    }
+  });
+
+  // Кольца из 3: me → B → C → me
+  const others = nodes.filter(n=>n.id!=="me");
+  for(let i=0;i<others.length;i++){
+    for(let j=0;j<others.length;j++){
+      if(i===j) continue;
+      const B = others[i], C = others[j];
+      // me даёт B, B даёт C, C даёт me
+      if(canGive(meNode,B) && canGive(B,C) && canGive(C,meNode)){
+        rings.push({
+          type:"Кольцо из 3 человек",
+          steps:[
+            {from:meNode.name, to:B.name, what: giveWhat(meNode,B)},
+            {from:B.name, to:C.name, what: giveWhat(B,C)},
+            {from:C.name, to:meNode.name, what: giveWhat(C,meNode)}
+          ]
+        });
+      }
+    }
+  }
+
+  // Убираем дубликаты (по набору участников)
+  const seen = new Set();
+  const unique = rings.filter(r=>{
+    const key = r.steps.map(s=>s.from+s.to).sort().join('|');
+    if(seen.has(key)) return false;
+    seen.add(key); return true;
+  });
+
+  renderRings(unique);
+}
+
+function giveWhat(a, b){
+  const skill = a.can.find(s => b.want.map(norm).includes(norm(s)));
+  return skill || "—";
+}
+
+function renderRings(rings){
+  const box = document.getElementById('ringsList');
+  if(!rings.length){
+    box.innerHTML = `<div class="empty">Колец не найдено 😔 Попробуй добавить навыки или расширить район.</div>`;
+    return;
+  }
+  // Сортируем: сначала кольца из 3, потом прямые
+  rings.sort((a,b)=> b.steps.length - a.steps.length);
+
+  box.innerHTML = rings.map(r=>`
+    <div class="ring">
+      <h3>🔗 ${r.type}</h3>
+      ${r.steps.map((s,i)=>`
+        <div class="step">
+          <span style="color:var(--muted)">${i+1}.</span>
+          <b>${s.from}</b> <span class="arrow">→</span> <b>${s.to}</b>
+          <span style="margin-left:auto; color:var(--accent2)">«${s.what}»</span>
+        </div>
+      `).join('')}
+      <p class="hint">Обмен по времени: 1 час = 1 час. Все участники в радиусе района.</p>
+    </div>
+  `).join('');
+}
+
+/* ============ РЕНДЕР ДЕМО-ЛЮДЕЙ ============ */
+function renderPeople(){
+  const box = document.getElementById('peopleList');
+  box.innerHTML = DEMO_PEOPLE.map(p=>`
+    <div class="person">
+      <div class="name">${p.name}</div>
+      <div class="dist">📍 ${p.district}</div>
+      <div>
+        ${p.can.map(s=>`<span class="tag can">${s}</span>`).join('')}
+        ${p.want.map(s=>`<span class="tag want">${s}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============ СТАРТ ============ */
+document.getElementById('canInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addSkill('can'); });
+document.getElementById('wantInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addSkill('want'); });
+renderPeople();
+renderMySkills();
+findRings();
+</script>
+</body>
+</html>
